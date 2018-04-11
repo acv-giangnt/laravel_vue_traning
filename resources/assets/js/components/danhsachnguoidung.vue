@@ -4,6 +4,14 @@
             <h3 class="box-title">Danh sách người dùng</h3>
         </div>
         <div style="padding-bottom: 10px;">
+            Show:
+            <select name="" v-model="lenSelect" @change="realShowUser()">
+                <option value="10">10</option>
+                <option value="20">20</option>
+                <option value="40">40</option>
+            </select>
+            Phần tử
+            <input type="text" class="ip-search" v-model="search" style="margin-left: 10px;margin-right: 20px;min-width:300px;border-radius: 10px;" placeholder="Nhập từ khóa tìm kiếm">
             <button class="btn btn-danger ds-bt" @click="xoa_muc_da_chon()">Xóa mục đã chọn</button>
             <button class="btn btn-success ds-bt" @click="save_status()">Lưu</button>
             <button class="btn btn-info ds-bt" @click="show_them_moi()">Thêm mới User</button>
@@ -12,21 +20,19 @@
         <div class="clearfix"></div>
         <!-- /.box-header -->
         <div class="box-body">
-            <table id="example1" class="table table-bordered table-striped">
+            <table id="table-user" class="table table-bordered table-striped">
                 <thead>
                 <tr>
-
                     <th><input type="checkbox" v-model="check_all" @change="un_all()"></th>
                     <th>Nội dung</th>
                     <th>Trạng thái</th>
                 </tr>
                 </thead>
                 <tbody>
-                <tr v-for="(nguoi_dung,index) in toan_bo_nguoi_dung">
+                <tr v-for="(nguoi_dung,index) in toan_bo_nguoi_dung" v-if="index >= lenSelect * (pageSelect - 1) && index < lenSelect * pageSelect && searchUser(nguoi_dung)">
                     <td>
                         <input type="checkbox" :value="nguoi_dung.id" v-model="id_da_chon" @change="click()">
                     </td>
-
                     <td>
                         <a href="#" @click="get_du_lieu_nguoi_dung(nguoi_dung.id)">{{nguoi_dung.ho + " " + nguoi_dung.ten}}</a>
                     </td>
@@ -48,7 +54,21 @@
 
                 </tbody>
             </table>
+
+            <span style="float: left;margin: 20px 0"> Hiển thị {{lenShow}}/{{toan_bo_nguoi_dung.length}} danh mục</span>
+            <div class="" style="float: right">
+
+
+                <ul class="pagination">
+                    <li><a href="#">&laquo;</a></li>
+                    <li v-for="currPage in listPage" @click="actionSelectPage(currPage)"><a href="#">{{currPage}}</a></li>
+                    <li><a href="#">&raquo;</a></li>
+                </ul>
+
+
+            </div>
         </div>
+        <div class="clearfix"></div>
         <!-- /.box-body -->
         <div class="modal fade" id="modal-thong-tin-nguoi-dung" style="display: none;">
             <div class="modal-dialog">
@@ -205,7 +225,8 @@
 <script>
 
     export default {
-        created(){
+
+        mounted (){
             this.laydulieu()
 
         },
@@ -218,23 +239,37 @@
                 du_lieu_nguoi_dung: [],
                 danh_sach_trang_thai: [],
                 them_moi: [],
-                file: null
-
+                file: null,
+                search: "",
+                lenSelect: 10,
+                pageSelect: 1,
+                listPage: [],
+                lenShow: 0
             }
         },
         methods:{
             laydulieu(){
                 axios.get("/api/nguoi-dung").then((res) => {
                     this.toan_bo_nguoi_dung = res.data
-console.log(res.data)
+                    var count =parseInt(this.toan_bo_nguoi_dung.length / this.lenSelect) + 1
+                    this.listPage = []
+                    for(var i = 1;i<=count;i++)
+                    {
+                        this.listPage.push(i)
+                    }
+
                     if(this.toan_bo_nguoi_dung.length> 0)
                     {
                         this.danh_sach_trang_thai = this.toan_bo_nguoi_dung.map((value) => {
                             return {id: value.id,trang_thai : value.trang_thai}
                         })
+                        this.realShowUser()
+
                     }
-                    console.log(this.danh_sach_trang_thai)
+
                 })
+
+
             },
             click(){
                 if(this.id_da_chon.length == this.toan_bo_nguoi_dung.length)
@@ -469,7 +504,50 @@ console.log(res.data)
                         console.log(err.response)
                     })
                 }
+            },
+            actionSelectPage(i){
+                this.pageSelect = i
+                this.realShowUser()
+            },
+            realShowUser(){
+                if(parseInt(this.lenSelect) * parseInt(this.pageSelect) >= this.toan_bo_nguoi_dung.length)
+                {
+                    this.lenShow = this.toan_bo_nguoi_dung.length
+                }
+                else {
+                    this.lenShow = parseInt(this.lenSelect) * parseInt(this.pageSelect)
+                }
+
+            },
+            searchUser(nguoi_dung)
+            {
+                if(this.search == "")
+                {
+                    return true;
+                }
+                return nguoi_dung.ho.search(this.search) != -1?true:false || nguoi_dung.ten.search(this.search) != -1?true:false
+            }
+        },
+        watch:{
+            search: function(val,oldVal)
+            {
+
+            },
+            lenSelect: function (val,oldVal) {
+                var count =parseInt(this.toan_bo_nguoi_dung.length / this.lenSelect) + 1
+                this.listPage = []
+                for(var i = 1;i<=count;i++)
+                {
+                    this.listPage.push(i)
+                }
             }
         }
     }
 </script>
+<style>
+    .ip-search{
+        float: left !important;
+        margin-left: 10px !important;
+        width: 100px !important;
+    }
+</style>
